@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  loginId      String        @unique
+  passwordHash String
+  name         String
+  nickname     String        @default("")
+  role         String        @default("user")
+  createdAt    DateTime      @default(now())
+  attempts     Attempt[]
+  sessions     ExamSession[]
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  prompt    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  choices   Choice[]
+}
+
+model Choice {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean  @default(false)
+  order      Int
+
+  @@index([questionId])
+}
+
+model ExamSession {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionIds Json
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  attemptId   String?
+
+  @@index([userId])
+}
+
+model Attempt {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score      Int
+  correct    Int
+  total      Int
+  finishedAt DateTime @default(now())
+  detail     Json
+
+  @@index([userId])
+}
