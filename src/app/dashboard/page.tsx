@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AdminClassReport } from "@/components/AdminClassReport";
 import { ProfileForm } from "@/components/ProfileForm";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StartExamButton } from "@/components/StartExamButton";
@@ -77,7 +78,10 @@ export default async function DashboardPage({
 
         <StartExamButton canStart={canStart} active={active} />
         {user.role === "admin" ? (
-          <p className="text-sm text-slate-500">출제 가능한 문제 {usable}개</p>
+          <>
+            <p className="text-sm text-slate-500">출제 가능한 문제 {usable}개</p>
+            <AdminClassReport />
+          </>
         ) : null}
 
         <section className="rounded-2xl border border-slate-200">

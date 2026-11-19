@@ -179,6 +179,67 @@ export async function gradeSession(
   };
 }
 
+const SCORE_BINS = [
+  { label: "0–9", min: 0, max: 9 },
+  { label: "10–19", min: 10, max: 19 },
+  { label: "20–29", min: 20, max: 29 },
+  { label: "30–39", min: 30, max: 39 },
+  { label: "40–49", min: 40, max: 49 },
+  { label: "50–59", min: 50, max: 59 },
+  { label: "60–69", min: 60, max: 69 },
+  { label: "70–79", min: 70, max: 79 },
+  { label: "80–89", min: 80, max: 89 },
+  { label: "90–100", min: 90, max: 100 },
+];
+
+export async function getClassReport() {
+  const users = await db().user.findMany({
+    where: { role: { not: "admin" } },
+    select: {
+      id: true,
+      name: true,
+      nickname: true,
+      attempts: {
+        select: { score: true, finishedAt: true },
+        orderBy: { finishedAt: "desc" },
+      },
+    },
+  });
+
+  const students = users
+    .map((user) => {
+      const scores = user.attempts.map((attempt) => attempt.score);
+      const average =
+        scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null;
+      return {
+        id: user.id,
+        name: user.name,
+        nickname: user.nickname,
+        count: scores.length,
+        average,
+        scores,
+      };
+    })
+    .sort((left, right) => (right.average ?? -1) - (left.average ?? -1) || left.name.localeCompare(right.name, "ko"));
+
+  const allScores = students.flatMap((student) => student.scores);
+  const overall =
+    allScores.length > 0
+      ? allScores.reduce((sum, score) => sum + score, 0) / allScores.length
+      : null;
+  const distribution = SCORE_BINS.map((bin) => ({
+    label: bin.label,
+    count: allScores.filter((score) => score >= bin.min && score <= bin.max).length,
+  }));
+
+  return {
+    students,
+    overall,
+    attemptCount: allScores.length,
+    distribution,
+  };
+}
+
 export async function getMyStats(userId: string) {
   const aggregate = await db().attempt.aggregate({
     where: { userId },

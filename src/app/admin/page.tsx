@@ -35,7 +35,7 @@ export default async function AdminPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">문제 관리</h1>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            선지를 입력하고 정답과 오답을 수정할 수 있습니다. 응시자는 이 문제들 중 20문제를
+            선지마다 정답과 오답을 체크해서 저장합니다. 응시자는 이 문제들 중 20문제를
             무작위로 풀게 됩니다. 지금 출제 가능한 문제는 {usable}개입니다.
           </p>
         </div>
