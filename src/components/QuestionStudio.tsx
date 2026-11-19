@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteQuestion, saveQuestion } from "@/app/actions/questions";
 import { dangerButtonClass, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui";
@@ -13,6 +13,8 @@ export type QuestionDTO = {
 
 type DraftChoice = { key: string; text: string; isCorrect: boolean };
 type Draft = { prompt: string; choices: DraftChoice[] };
+
+const QUESTION_PAGE_SIZE = 5;
 
 function emptyDraft(): Draft {
   return {
@@ -204,6 +206,36 @@ export function QuestionStudio({ questions }: { questions: QuestionDTO[] }) {
   const [editError, setEditError] = useState("");
   const [editMessage, setEditMessage] = useState("");
   const [editPending, setEditPending] = useState(false);
+  const pageCount = Math.max(1, Math.ceil(questions.length / QUESTION_PAGE_SIZE));
+  const [page, setPage] = useState(0);
+  const [pageDraft, setPageDraft] = useState("1");
+  const [slide, setSlide] = useState<"next" | "prev" | null>(null);
+
+  useEffect(() => {
+    const last = Math.max(0, Math.ceil(questions.length / QUESTION_PAGE_SIZE) - 1);
+    if (page > last) {
+      setSlide("prev");
+      setPage(last);
+      setPageDraft(String(last + 1));
+    }
+  }, [questions.length, page]);
+
+  function showPage(nextPage: number) {
+    const last = pageCount - 1;
+    const target = Math.min(Math.max(nextPage, 0), last);
+    if (target !== page) setSlide(target > page ? "next" : "prev");
+    setPage(target);
+    setPageDraft(String(target + 1));
+  }
+
+  function commitPageDraft() {
+    const parsed = Number(pageDraft);
+    if (!Number.isInteger(parsed)) {
+      setPageDraft(String(page + 1));
+      return;
+    }
+    showPage(parsed - 1);
+  }
 
   function openQuestion(question: QuestionDTO) {
     setEditingId(question.id);
@@ -296,51 +328,117 @@ export function QuestionStudio({ questions }: { questions: QuestionDTO[] }) {
           </p>
         </div>
         <div className="grid items-start gap-6 p-5 sm:p-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <div className="space-y-2">
+          <div>
             {questions.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm leading-6 text-slate-500">
                 아직 등록된 문제가 없습니다.
               </p>
             ) : (
-              questions.map((question, index) => {
-                const correctNumbers = question.choices.flatMap((choice, choiceIndex) =>
-                  choice.isCorrect ? [choiceIndex + 1] : [],
-                );
-                const active = editingId === question.id;
-                return (
+              <>
+                <style>{`
+                  @keyframes question-slide-next {
+                    from { transform: translateX(32px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                  }
+                  @keyframes question-slide-prev {
+                    from { transform: translateX(-32px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                  }
+                  .question-slide-next { animation: question-slide-next 220ms ease; }
+                  .question-slide-prev { animation: question-slide-prev 220ms ease; }
+                `}</style>
+                <div className="overflow-hidden">
                   <div
-                    key={question.id}
-                    className={`rounded-2xl border p-3 ${
-                      active ? "border-brand bg-brand-soft" : "border-slate-200"
+                    key={page}
+                    className={`space-y-2 ${
+                      slide === "next" ? "question-slide-next" : slide === "prev" ? "question-slide-prev" : ""
                     }`}
                   >
-                    <p className="text-xs font-semibold text-brand">문제 {index + 1}</p>
-                    <p className="mt-1 line-clamp-2 text-sm font-medium text-slate-800">{question.prompt}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      정답 {correctNumbers.length > 0 ? `${correctNumbers.join(", ")}번` : "없음"} · 선지{" "}
-                      {question.choices.length}개
-                    </p>
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                        disabled={editPending}
-                        onClick={() => openQuestion(question)}
-                      >
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        className={dangerButtonClass}
-                        disabled={editPending}
-                        onClick={() => void onDelete(question.id)}
-                      >
-                        삭제
-                      </button>
-                    </div>
+                    {questions
+                      .slice(page * QUESTION_PAGE_SIZE, page * QUESTION_PAGE_SIZE + QUESTION_PAGE_SIZE)
+                      .map((question, index) => {
+                        const correctNumbers = question.choices.flatMap((choice, choiceIndex) =>
+                          choice.isCorrect ? [choiceIndex + 1] : [],
+                        );
+                        const active = editingId === question.id;
+                        const number = page * QUESTION_PAGE_SIZE + index + 1;
+                        return (
+                          <div
+                            key={question.id}
+                            className={`rounded-2xl border p-3 ${
+                              active ? "border-brand bg-brand-soft" : "border-slate-200"
+                            }`}
+                          >
+                            <p className="text-xs font-semibold text-brand">문제 {number}</p>
+                            <p className="mt-1 line-clamp-2 text-sm font-medium text-slate-800">{question.prompt}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              정답 {correctNumbers.length > 0 ? `${correctNumbers.join(", ")}번` : "없음"} · 선지{" "}
+                              {question.choices.length}개
+                            </p>
+                            <div className="mt-3 flex gap-2">
+                              <button
+                                type="button"
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                disabled={editPending}
+                                onClick={() => openQuestion(question)}
+                              >
+                                수정
+                              </button>
+                              <button
+                                type="button"
+                                className={dangerButtonClass}
+                                disabled={editPending}
+                                onClick={() => void onDelete(question.id)}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
-                );
-              })
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    aria-label="이전 페이지"
+                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={page === 0}
+                    onClick={() => showPage(page - 1)}
+                  >
+                    ‹
+                  </button>
+                  <form
+                    className="flex items-center gap-1.5 text-sm text-slate-500"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      commitPageDraft();
+                    }}
+                  >
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={pageCount}
+                      aria-label="페이지 번호"
+                      value={pageDraft}
+                      onChange={(event) => setPageDraft(event.target.value)}
+                      onBlur={commitPageDraft}
+                      className="w-12 rounded-lg border border-slate-200 bg-white px-1 py-1.5 text-center text-sm text-slate-900 outline-none focus:border-brand"
+                    />
+                    <span>/ {pageCount}</span>
+                  </form>
+                  <button
+                    type="button"
+                    aria-label="다음 페이지"
+                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={page >= pageCount - 1}
+                    onClick={() => showPage(page + 1)}
+                  >
+                    ›
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
