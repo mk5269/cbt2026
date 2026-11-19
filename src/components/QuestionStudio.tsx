@@ -198,6 +198,7 @@ export function QuestionStudio({ questions }: { questions: QuestionDTO[] }) {
   const [newMessage, setNewMessage] = useState("");
   const [newPending, setNewPending] = useState(false);
 
+  const [panel, setPanel] = useState<"new" | "saved">("new");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(emptyDraft);
   const [editError, setEditError] = useState("");
@@ -272,13 +273,26 @@ export function QuestionStudio({ questions }: { questions: QuestionDTO[] }) {
     router.refresh();
   }
 
+  const tabClass = (active: boolean) =>
+    `${active ? primaryButtonClass : secondaryButtonClass} w-full`;
+
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3">
+        <button type="button" className={tabClass(panel === "new")} onClick={() => setPanel("new")}>
+          새 문제
+        </button>
+        <button type="button" className={tabClass(panel === "saved")} onClick={() => setPanel("saved")}>
+          저장된 문제 보기
+        </button>
+      </div>
+
+      {panel === "saved" ? (
       <section className="rounded-2xl border border-slate-200">
         <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-          <h2 className="text-lg font-bold text-slate-900">등록된 문제 수정·삭제</h2>
+          <h2 className="text-lg font-bold text-slate-900">저장된 문제</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            이미 저장된 문제를 고치거나 지웁니다. 새 문제 입력과는 따로 동작합니다.
+            왼쪽 목록에서 수정하거나 삭제합니다.
           </p>
         </div>
         <div className="grid items-start gap-6 p-5 sm:p-6 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -354,7 +368,7 @@ export function QuestionStudio({ questions }: { questions: QuestionDTO[] }) {
           </div>
         </div>
       </section>
-
+      ) : (
       <section className="rounded-2xl border border-slate-200 p-5 sm:p-6">
         <h2 className="text-lg font-bold text-slate-900">새 문제 등록</h2>
         <div className="mt-4">
@@ -369,6 +383,7 @@ export function QuestionStudio({ questions }: { questions: QuestionDTO[] }) {
           />
         </div>
       </section>
+      )}
     </div>
   );
 }

@@ -35,7 +35,7 @@ export default async function AdminPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">문제 관리</h1>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            위쪽에서는 저장된 문제를 수정하거나 삭제하고, 아래쪽에서는 새 문제를 등록합니다. 응시자는 이 문제들 중 20문제를
+            새 문제와 저장된 문제 보기를 눌러 등록하거나 수정·삭제할 수 있습니다. 응시자는 이 문제들 중 20문제를
             무작위로 풀게 됩니다. 지금 출제 가능한 문제는 {usable}개입니다.
           </p>
         </div>
